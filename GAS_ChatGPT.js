@@ -1,3 +1,12 @@
+const LINE_ACCESS_TOKEN = '';
+const OPENAI_APIKEY = '';
+const historySheet = SpreadsheetApp.openById("").getSheetByName("history");
+const questionsSheet = SpreadsheetApp.openById("").getSheetByName("questions");
+const systemText = "";
+const lineReplyUrl = 'https://api.line.me/v2/bot/message/reply';
+const historyNum = 10;
+const questionNum = 10;
+
 function doPost(e) {
   const event = JSON.parse(e.postData.contents).events[0];
 
