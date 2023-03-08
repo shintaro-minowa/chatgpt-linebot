@@ -6,6 +6,7 @@ const systemText = "";
 const lineReplyUrl = 'https://api.line.me/v2/bot/message/reply';
 const HistoryNum = 10;
 const QuestionNum = 10;
+const UsageLimit = 1000;
 
 function doPost(e) {
   const event = JSON.parse(e.postData.contents).events[0];
@@ -17,6 +18,17 @@ function doPost(e) {
   if (userMessage === undefined) {
     // メッセージ以外(スタンプや画像など)が送られてきた場合
     userMessage = '？？？';
+  }
+
+  if (isOverUsageLimit(userId)) {
+    let text = "いつもご利用いただきありがとうございます。\n本日の利用制限回数に到達しました🙇‍♂";
+    // LINEで返信
+    this.lineReply(replyToken, text);
+
+    // もし2通目を送る場合は別の処理が必要。
+
+    // 処理終了
+    return;
   }
 
   // ChatGPTに渡すmessageを作成
@@ -148,4 +160,14 @@ function shuffleArray(array) {
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+}
+
+function isOverUsageLimit(userId) {
+  var data = historySheet.getDataRange().getValues();
+  var now = new Date(); // 現在時刻を取得
+  var oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24時間前の時刻を計算
+  var userRows = data.filter(function (row) {
+    return row[0] === userId && new Date(row[3]) >= oneDayAgo; // 24時間以内のデータをフィルタリング
+  });
+  return userRows.length >= UsageLimit;
 }
