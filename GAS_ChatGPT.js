@@ -46,25 +46,8 @@ function doPost(e) {
   // 現在の会話を保存
   this.saveMessage(userId, userMessage, text);
 
-  // quickReplyの選択肢を取得
-  const quickReplyOptions = this.getQuickReplyOptions();
-
-  UrlFetchApp.fetch(lineReplyUrl, {
-    'headers': {
-      'Content-Type': 'application/json; charset=UTF-8',
-      'Authorization': 'Bearer ' + LINE_ACCESS_TOKEN,
-    },
-    'method': 'post',
-    'payload': JSON.stringify({
-      'replyToken': replyToken,
-      'messages': [{
-        'type': 'text',
-        'text': text,
-        'quickReply': quickReplyOptions
-      }]
-    })
-  });
-  return ContentService.createTextOutput(JSON.stringify({ 'content': 'post ok' })).setMimeType(ContentService.MimeType.JSON);
+  // LINEで返信
+  this.lineReply(replyToken, text);
 }
 
 function createMessage(userId, userMessage) {
@@ -102,6 +85,28 @@ function saveMessage(userId, userMessage, text) {
   historySheet.getRange(lastRow + 1, 2).setValue(userMessage);
   historySheet.getRange(lastRow + 1, 3).setValue(text);
   historySheet.getRange(lastRow + 1, 4).setValue(now);
+}
+
+function lineReply(replyToken, text) {
+  // quickReplyの選択肢を取得
+  const quickReplyOptions = this.getQuickReplyOptions();
+
+  UrlFetchApp.fetch(lineReplyUrl, {
+    'headers': {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': 'Bearer ' + LINE_ACCESS_TOKEN,
+    },
+    'method': 'post',
+    'payload': JSON.stringify({
+      'replyToken': replyToken,
+      'messages': [{
+        'type': 'text',
+        'text': text,
+        'quickReply': quickReplyOptions
+      }]
+    })
+  });
+  return ContentService.createTextOutput(JSON.stringify({ 'content': 'post ok' })).setMimeType(ContentService.MimeType.JSON);
 }
 
 function getQuickReplyOptions() {
