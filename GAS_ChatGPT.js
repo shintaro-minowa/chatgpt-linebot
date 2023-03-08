@@ -69,33 +69,24 @@ function doPost(e) {
 
 function createMessage(userId, userMessage) {
   // スプレッドシートから会話の履歴を全件取得
-  const lastRow = historySheet.getLastRow();
-  const lastColumn = historySheet.getLastColumn();
-  let data = historySheet.getRange(1, 1, lastRow, lastColumn).getValues();
-
-  // 現在の会話の履歴を先頭にする
-  data = data.reverse();
+  let data = historySheet.getDataRange().getValues();
+  // userIdでフィルタリング
+  let userRows = data.filter(row => row[0] === userId);
+  // 最新の会話を取得
+  let lastFiveRows = userRows.slice(-historyNum);
 
   let messages = [];
-
-  // ユーザーIDをキーに、最新の会話の履歴を5件を取得し、messagesに追加する。
-  for (let i = 0; i < data.length; i++) {
-    const value = data[i];
-    if (userId == value[0]) {
-      messages.push({ "role": "assistant", "content": value[2] });
-      messages.push({ "role": "user", "content": value[1] });
-    }
-    if (i >= 4) {
-      break;
-    }
-  }
-
-  // 取得した中で、古い会話の履歴を先頭にする
-  messages = messages.reverse();
 
   // AIの性格を指定する文を入れる
   messages.unshift({ "role": "system", "content": systemText });
 
+  // 最新の会話を入れる
+  lastFiveRows.forEach(function (row) {
+    messages.push({ "role": "user", "content": row[1] });
+    messages.push({ "role": "assistant", "content": row[2] });
+  });
+
+  // 現在のメッセージを入れる
   messages.push({ "role": "user", "content": userMessage });
 
   return messages;
