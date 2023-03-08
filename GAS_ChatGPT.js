@@ -4,8 +4,8 @@ const historySheet = SpreadsheetApp.openById("").getSheetByName("history");
 const questionsSheet = SpreadsheetApp.openById("").getSheetByName("questions");
 const systemText = "";
 const lineReplyUrl = 'https://api.line.me/v2/bot/message/reply';
-const historyNum = 10;
-const questionNum = 10;
+const HistoryNum = 10;
+const QuestionNum = 10;
 
 function doPost(e) {
   const event = JSON.parse(e.postData.contents).events[0];
@@ -73,7 +73,7 @@ function createMessage(userId, userMessage) {
   // userIdでフィルタリング
   let userRows = data.filter(row => row[0] === userId);
   // 最新の会話を取得
-  let lastFiveRows = userRows.slice(-historyNum);
+  let lastFiveRows = userRows.slice(-HistoryNum);
 
   let messages = [];
 
@@ -125,7 +125,7 @@ function getQuickReplyOptions() {
     // text: 最大文字数：300
     questions.push({ "type": "action", "action": { "type": "message", "label": text, "text": text } });
 
-    if (i >= questionNum - 1) {
+    if (i >= QuestionNum - 1) {
       break;
     }
   }
