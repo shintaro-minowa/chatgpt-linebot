@@ -28,7 +28,11 @@ function doPost(e) {
 
   const responseText = response.getContentText();
   const json = JSON.parse(responseText);
-  const text = json['choices'][0]['message']['content'].trim();
+  let text = json['choices'][0]['message']['content'].trim();
+
+  // 5000文字に収まるようにする
+  // https://developers.line.biz/ja/reference/messaging-api/#text-message
+  text = text.substr(0, 5000);
 
   // 現在の会話を保存
   this.saveMessage(userId, userMessage, text);
@@ -116,10 +120,10 @@ function getQuickReplyOptions() {
   // ヘッダーはスキップ
   for (let i = 0; i < data.length; i++) {
     const value = data[i];
-
+    const text = value[0].substr(0, 20);
     // label: 最大文字数：20
     // text: 最大文字数：300
-    questions.push({ "type": "action", "action": { "type": "message", "label": value[0], "text": value[0] } });
+    questions.push({ "type": "action", "action": { "type": "message", "label": text, "text": text } });
 
     if (i >= questionNum - 1) {
       break;
