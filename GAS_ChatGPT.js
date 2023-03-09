@@ -110,15 +110,19 @@ function createMessage(userId, userMessage) {
 
   // AIの性格を指定する文を入れる
   messages.unshift({ "role": "system", "content": systemText });
+  Logger.log('role: system, content: ' + systemText);
 
   // 最新の会話を入れる
   lastFiveRows.forEach(function (row) {
     messages.push({ "role": "user", "content": row[1] });
     messages.push({ "role": "assistant", "content": row[2] });
+    Logger.log('role: user, content: ' + row[1]);
+    Logger.log('role: assistant, content: ' + row[2]);
   });
 
   // 現在のメッセージを入れる
   messages.push({ "role": "user", "content": userMessage });
+  Logger.log('role: user, content: ' + userMessage);
 
   return messages;
 }
