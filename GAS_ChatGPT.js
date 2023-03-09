@@ -8,6 +8,8 @@ const lineReplyUrl = 'https://api.line.me/v2/bot/message/reply';
 const HistoryNum = 3;
 const QuestionNum = 10;
 const UsageLimit = 1000;
+const MAX_LENGTH_INPUT = 1000;
+const MAX_LENGTH_OUTPUT = 4000;
 
 function doPost(e) {
   try {
@@ -15,7 +17,7 @@ function doPost(e) {
 
     const userId = event.source.userId;
     const replyToken = event.replyToken;
-    const userMessage = event.message.text;
+    let userMessage = event.message.text;
 
     this.saveLog('userId: ' + userId);
     this.saveLog('replyToken: ' + replyToken);
@@ -25,6 +27,11 @@ function doPost(e) {
       // メッセージ以外(スタンプや画像など)が送られてきた場合
       userMessage = '？？？';
     }
+
+    // メッセージを MAX_LENGTH_INPUT の値で切り捨て
+    userMessage = userMessage.substring(0, MAX_LENGTH_INPUT);
+    this.saveLog('MAX_LENGTH_INPUT: ' + MAX_LENGTH_INPUT);
+    this.saveLog('Truncated userMessage: ' + userMessage);
 
     if (isOverUsageLimit(userId)) {
       let text = "いつもご利用いただきありがとうございます。\n本日の利用制限回数に到達しました🙇‍♂";
@@ -56,11 +63,15 @@ function doPost(e) {
     const responseText = response.getContentText();
     const json = JSON.parse(responseText);
     let text = json['choices'][0]['message']['content'].trim();
-
-    // 5000文字に収まるようにする
-    // https://developers.line.biz/ja/reference/messaging-api/#text-message
-    text = text.substr(0, 5000);
     this.saveLog('text: ' + text);
+
+    // LINEで返信する文章は最大5000文字
+    // https://developers.line.biz/ja/reference/messaging-api/#text-message
+
+    // ChatGPTからのレスポンスを MAX_LENGTH_OUTPUT の値で切り捨て
+    text = text.substring(0, MAX_LENGTH_OUTPUT);
+    this.saveLog('MAX_LENGTH_OUTPUT: ' + MAX_LENGTH_OUTPUT);
+    this.saveLog('Truncated text: ' + text);
 
     // 消費したトークン数
     const usage = json['usage'];
@@ -74,7 +85,7 @@ function doPost(e) {
     // LINEで返信
     this.lineReply(replyToken, text);
   } catch (error) {
-    saveLog(error);
+    this.saveLog(error);
   }
 }
 
@@ -95,6 +106,8 @@ function createMessage(userId, userMessage) {
   lastFiveRows.forEach(function (row) {
     messages.push({ "role": "user", "content": row[1] });
     messages.push({ "role": "assistant", "content": row[2] });
+    this.saveLog('user: ' + row[1]);
+    this.saveLog('assistant: ' + row[2]);
   });
 
   // 現在のメッセージを入れる
