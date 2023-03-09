@@ -13,15 +13,16 @@ const MAX_LENGTH_OUTPUT = 4000;
 
 function doPost(e) {
   try {
+    Logger.log("doPost start");
     const event = JSON.parse(e.postData.contents).events[0];
 
     const userId = event.source.userId;
     const replyToken = event.replyToken;
     let userMessage = event.message.text;
 
-    this.saveLog('userId: ' + userId);
-    this.saveLog('replyToken: ' + replyToken);
-    this.saveLog('userMessage: ' + userMessage);
+    Logger.log('userId: ' + userId);
+    Logger.log('replyToken: ' + replyToken);
+    Logger.log('userMessage: ' + userMessage);
 
     if (userMessage === undefined) {
       // メッセージ以外(スタンプや画像など)が送られてきた場合
@@ -30,13 +31,11 @@ function doPost(e) {
 
     // メッセージを MAX_LENGTH_INPUT の値で切り捨て
     userMessage = userMessage.substring(0, MAX_LENGTH_INPUT);
-    this.saveLog('MAX_LENGTH_INPUT: ' + MAX_LENGTH_INPUT);
-    this.saveLog('Truncated userMessage: ' + userMessage);
 
     if (isOverUsageLimit(userId)) {
       let text = "いつもご利用いただきありがとうございます。\n本日の利用制限回数に到達しました🙇‍♂";
       // LINEで返信
-      this.lineReply(replyToken, text);
+      lineReply(replyToken, text);
 
       // もし2通目を送る場合は別の処理が必要。
 
@@ -45,7 +44,7 @@ function doPost(e) {
     }
 
     // ChatGPTに渡すmessageを作成
-    const messages = this.createMessage(userId, userMessage);
+    const messages = createMessage(userId, userMessage);
 
     const requestOptions = {
       "method": "post",
@@ -58,34 +57,41 @@ function doPost(e) {
         "messages": messages
       })
     }
+
+    Logger.log("call ChatGPT API");
     const response = UrlFetchApp.fetch("https://api.openai.com/v1/chat/completions", requestOptions);
+    Logger.log("called ChatGPT API");
 
     const responseText = response.getContentText();
     const json = JSON.parse(responseText);
     let text = json['choices'][0]['message']['content'].trim();
-    this.saveLog('text: ' + text);
+    Logger.log("text:" + text);
 
     // LINEで返信する文章は最大5000文字
     // https://developers.line.biz/ja/reference/messaging-api/#text-message
 
     // ChatGPTからのレスポンスを MAX_LENGTH_OUTPUT の値で切り捨て
     text = text.substring(0, MAX_LENGTH_OUTPUT);
-    this.saveLog('MAX_LENGTH_OUTPUT: ' + MAX_LENGTH_OUTPUT);
-    this.saveLog('Truncated text: ' + text);
 
     // 消費したトークン数
     const usage = json['usage'];
-    this.saveLog('prompt_tokens: ' + usage['prompt_tokens']);
-    this.saveLog('completion_tokens: ' + usage['completion_tokens']);
-    this.saveLog('total_tokens: ' + usage['total_tokens']);
+
+    Logger.log('prompt_tokens: ' + usage['prompt_tokens']);
+    Logger.log('completion_tokens: ' + usage['completion_tokens']);
+    Logger.log('total_tokens: ' + usage['total_tokens']);
 
     // 現在の会話を保存
-    this.saveMessage(userId, userMessage, text);
+    saveMessage(userId, userMessage, text);
+
+    Logger.log('doPost end');
+
+    // ログを保存
+    saveLog(Logger.getLog());
 
     // LINEで返信
-    this.lineReply(replyToken, text);
+    lineReply(replyToken, text);
   } catch (error) {
-    this.saveLog(error);
+    saveLog(error);
   }
 }
 
@@ -106,8 +112,6 @@ function createMessage(userId, userMessage) {
   lastFiveRows.forEach(function (row) {
     messages.push({ "role": "user", "content": row[1] });
     messages.push({ "role": "assistant", "content": row[2] });
-    this.saveLog('user: ' + row[1]);
-    this.saveLog('assistant: ' + row[2]);
   });
 
   // 現在のメッセージを入れる
@@ -130,7 +134,7 @@ function saveMessage(userId, userMessage, text) {
 
 function lineReply(replyToken, text) {
   // quickReplyの選択肢を取得
-  const quickReplyOptions = this.getQuickReplyOptions();
+  const quickReplyOptions = getQuickReplyOptions();
 
   UrlFetchApp.fetch(lineReplyUrl, {
     'headers': {
@@ -158,7 +162,7 @@ function getQuickReplyOptions() {
   let data = questionsSheet.getRange(2, 1, lastRow - 1, lastColumn).getValues();
 
   // 質問例をシャッフルする
-  this.shuffleArray(data);
+  shuffleArray(data);
 
   let questions = [];
 
