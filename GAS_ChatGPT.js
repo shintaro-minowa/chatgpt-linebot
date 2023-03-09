@@ -126,7 +126,7 @@ function createMessage(userId, userMessage) {
   // userIdでフィルタリング
   let userRows = data.filter(row => row[0] === userId);
   // 最新の会話を取得
-  let lastFiveRows = userRows.slice(-HISTORY_NUM);
+  let latestRows = userRows.slice(-HISTORY_NUM);
 
   let messages = [];
 
@@ -135,7 +135,7 @@ function createMessage(userId, userMessage) {
   Logger.log('role: system, content: ' + SYSTEM_TEXT);
 
   // 最新の会話を入れる
-  lastFiveRows.forEach(function (row) {
+  latestRows.forEach(function (row) {
     messages.push({ "role": "user", "content": row[1] });
     messages.push({ "role": "assistant", "content": row[2] });
     Logger.log('role: user, content: ' + row[1]);
