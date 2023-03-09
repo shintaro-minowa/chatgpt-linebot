@@ -5,6 +5,7 @@ const SHEET_ID = '';
 const SYSTEM_TEXT = "";
 
 // 以降は全環境で統一
+const CHAT_GPT_URL = 'https://api.openai.com/v1/chat/completions';
 const LINE_REPLY_URL = 'https://api.line.me/v2/bot/message/reply';
 const HISTORY_NUM = 3;
 const QUESTION_NUM = 10;
@@ -16,7 +17,6 @@ const historySheet = sheet.getSheetByName("history");
 const questionsSheet = sheet.getSheetByName("questions");
 const logSheet = sheet.getSheetByName("log");
 const errorLogSheet = sheet.getSheetByName("error_log");
-
 
 function doPost(e) {
   try {
@@ -54,40 +54,14 @@ function doPost(e) {
 
     // ChatGPTに渡すmessageを作成
     const messages = createMessage(userId, userMessage);
-
-    const requestOptions = {
-      "method": "post",
-      "headers": {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + OPENAI_APIKEY
-      },
-      "payload": JSON.stringify({
-        "model": "gpt-3.5-turbo",
-        "messages": messages
-      })
-    }
-
-    Logger.log("call ChatGPT API");
-    const response = UrlFetchApp.fetch("https://api.openai.com/v1/chat/completions", requestOptions);
-    Logger.log("called ChatGPT API");
-
-    const responseText = response.getContentText();
-    const json = JSON.parse(responseText);
-    let text = json['choices'][0]['message']['content'].trim();
-    Logger.log("text:" + text);
+    // ChatGPTのAPIを呼び出す
+    let text = requestChatGpt(messages);
 
     // LINEで返信する文章は最大5000文字
     // https://developers.line.biz/ja/reference/messaging-api/#text-message
 
     // ChatGPTからのレスポンスを MAX_LENGTH_OUTPUT の値で切り捨て
     text = text.substring(0, MAX_LENGTH_OUTPUT);
-
-    // 消費したトークン数
-    const usage = json['usage'];
-
-    Logger.log('prompt_tokens: ' + usage['prompt_tokens']);
-    Logger.log('completion_tokens: ' + usage['completion_tokens']);
-    Logger.log('total_tokens: ' + usage['total_tokens']);
 
     // 現在の会話を保存
     saveMessage(userId, userMessage, text);
@@ -104,6 +78,46 @@ function doPost(e) {
     saveLog(Logger.getLog());
     saveErrorLog(Logger.getLog());
   }
+}
+
+function requestChatGpt(messages) {
+  let text = '';
+  try {
+    const requestOptions = {
+      "method": "post",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + OPENAI_APIKEY
+      },
+      "payload": JSON.stringify({
+        "model": "gpt-3.5-turbo",
+        "messages": messages
+      })
+    }
+
+    // ChatGPTのAPIをリクエストする
+    Logger.log("call ChatGPT API");
+    const response = UrlFetchApp.fetch(CHAT_GPT_URL, requestOptions);
+    Logger.log("called ChatGPT API");
+
+    const responseText = response.getContentText();
+    const json = JSON.parse(responseText);
+    text = json['choices'][0]['message']['content'].trim();
+
+    // 消費したトークン数
+    const usage = json['usage'];
+    Logger.log('prompt_tokens: ' + usage['prompt_tokens']);
+    Logger.log('completion_tokens: ' + usage['completion_tokens']);
+    Logger.log('total_tokens: ' + usage['total_tokens']);
+
+  } catch (error) {
+    Logger.log(error);
+    saveErrorLog(Logger.getLog());
+
+    text = 'ChatGPTが正常に応答しませんでした。しばらく待ってから再度お試しください。';
+  }
+  Logger.log("text:" + text);
+  return text;
 }
 
 function createMessage(userId, userMessage) {
