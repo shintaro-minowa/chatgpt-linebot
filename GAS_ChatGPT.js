@@ -2,6 +2,7 @@ const LINE_ACCESS_TOKEN = '';
 const OPENAI_APIKEY = '';
 const historySheet = SpreadsheetApp.openById("").getSheetByName("history");
 const questionsSheet = SpreadsheetApp.openById("").getSheetByName("questions");
+const logSheet = SpreadsheetApp.openById("").getSheetByName("log");
 const systemText = "";
 const lineReplyUrl = 'https://api.line.me/v2/bot/message/reply';
 const HistoryNum = 10;
@@ -9,57 +10,65 @@ const QuestionNum = 10;
 const UsageLimit = 1000;
 
 function doPost(e) {
-  const event = JSON.parse(e.postData.contents).events[0];
+  try {
+    const event = JSON.parse(e.postData.contents).events[0];
 
-  const userId = event.source.userId;
-  const replyToken = event.replyToken;
-  const userMessage = event.message.text;
+    const userId = event.source.userId;
+    const replyToken = event.replyToken;
+    const userMessage = event.message.text;
 
-  if (userMessage === undefined) {
-    // メッセージ以外(スタンプや画像など)が送られてきた場合
-    userMessage = '？？？';
-  }
+    this.saveLog('userId: ' + userId);
+    this.saveLog('replyToken: ' + replyToken);
+    this.saveLog('userMessage: ' + userMessage);
 
-  if (isOverUsageLimit(userId)) {
-    let text = "いつもご利用いただきありがとうございます。\n本日の利用制限回数に到達しました🙇‍♂";
+    if (userMessage === undefined) {
+      // メッセージ以外(スタンプや画像など)が送られてきた場合
+      userMessage = '？？？';
+    }
+
+    if (isOverUsageLimit(userId)) {
+      let text = "いつもご利用いただきありがとうございます。\n本日の利用制限回数に到達しました🙇‍♂";
+      // LINEで返信
+      this.lineReply(replyToken, text);
+
+      // もし2通目を送る場合は別の処理が必要。
+
+      // 処理終了
+      return;
+    }
+
+    // ChatGPTに渡すmessageを作成
+    const messages = this.createMessage(userId, userMessage);
+
+    const requestOptions = {
+      "method": "post",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + OPENAI_APIKEY
+      },
+      "payload": JSON.stringify({
+        "model": "gpt-3.5-turbo",
+        "messages": messages
+      })
+    }
+    const response = UrlFetchApp.fetch("https://api.openai.com/v1/chat/completions", requestOptions);
+
+    const responseText = response.getContentText();
+    const json = JSON.parse(responseText);
+    let text = json['choices'][0]['message']['content'].trim();
+
+    // 5000文字に収まるようにする
+    // https://developers.line.biz/ja/reference/messaging-api/#text-message
+    text = text.substr(0, 5000);
+
+    // 現在の会話を保存
+    this.saveMessage(userId, userMessage, text);
+
     // LINEで返信
     this.lineReply(replyToken, text);
-
-    // もし2通目を送る場合は別の処理が必要。
-
-    // 処理終了
-    return;
+  } catch (error) {
+    saveLog(error);
   }
-
-  // ChatGPTに渡すmessageを作成
-  const messages = this.createMessage(userId, userMessage);
-
-  const requestOptions = {
-    "method": "post",
-    "headers": {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + OPENAI_APIKEY
-    },
-    "payload": JSON.stringify({
-      "model": "gpt-3.5-turbo",
-      "messages": messages
-    })
-  }
-  const response = UrlFetchApp.fetch("https://api.openai.com/v1/chat/completions", requestOptions);
-
-  const responseText = response.getContentText();
-  const json = JSON.parse(responseText);
-  let text = json['choices'][0]['message']['content'].trim();
-
-  // 5000文字に収まるようにする
-  // https://developers.line.biz/ja/reference/messaging-api/#text-message
-  text = text.substr(0, 5000);
-
-  // 現在の会話を保存
-  this.saveMessage(userId, userMessage, text);
-
-  // LINEで返信
-  this.lineReply(replyToken, text);
 }
 
 function createMessage(userId, userMessage) {
@@ -170,4 +179,14 @@ function isOverUsageLimit(userId) {
     return row[0] === userId && new Date(row[3]) >= oneDayAgo; // 24時間以内のデータをフィルタリング
   });
   return userRows.length >= UsageLimit;
+}
+
+function saveLog(text) {
+  // 現在日時を取得
+  const now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+
+  const lastRow = logSheet.getLastRow();
+  // スプレッドシートにログを出力
+  logSheet.getRange(lastRow + 1, 1).setValue(text);
+  logSheet.getRange(lastRow + 1, 2).setValue(now);
 }
