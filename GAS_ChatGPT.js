@@ -1,15 +1,22 @@
+// 環境変数
 const LINE_ACCESS_TOKEN = '';
 const OPENAI_APIKEY = '';
-const historySheet = SpreadsheetApp.openById("").getSheetByName("history");
-const questionsSheet = SpreadsheetApp.openById("").getSheetByName("questions");
-const logSheet = SpreadsheetApp.openById("").getSheetByName("log");
+const SHEET_ID = '';
 const SYSTEM_TEXT = "";
+
+// 以降は全環境で統一
 const LINE_REPLY_URL = 'https://api.line.me/v2/bot/message/reply';
 const HISTORY_NUM = 3;
 const QUESTION_NUM = 10;
 const USAGE_LIMIT = 1000;
 const MAX_LENGTH_INPUT = 1000;
 const MAX_LENGTH_OUTPUT = 4000;
+const sheet = SpreadsheetApp.openById(SHEET_ID);
+const historySheet = sheet.getSheetByName("history");
+const questionsSheet = sheet.getSheetByName("questions");
+const logSheet = sheet.getSheetByName("log");
+const errorLogSheet = sheet.getSheetByName("error_log");
+
 
 function doPost(e) {
   try {
@@ -95,6 +102,7 @@ function doPost(e) {
   } catch (error) {
     Logger.log(error);
     saveLog(Logger.getLog());
+    saveErrorLog(Logger.getLog());
   }
 }
 
@@ -216,4 +224,10 @@ function saveLog(text) {
   const lastRow = logSheet.getLastRow();
   // スプレッドシートにログを出力
   logSheet.getRange(lastRow + 1, 1).setValue(text);
+}
+
+function saveErrorLog(text) {
+  const lastRow = errorLogSheet.getLastRow();
+  // スプレッドシートにログを出力
+  errorLogSheet.getRange(lastRow + 1, 1).setValue(text);
 }
