@@ -4,10 +4,10 @@ const historySheet = SpreadsheetApp.openById("").getSheetByName("history");
 const questionsSheet = SpreadsheetApp.openById("").getSheetByName("questions");
 const logSheet = SpreadsheetApp.openById("").getSheetByName("log");
 const systemText = "";
-const lineReplyUrl = 'https://api.line.me/v2/bot/message/reply';
-const HistoryNum = 3;
-const QuestionNum = 10;
-const UsageLimit = 1000;
+const LINE_REPLY_URL = 'https://api.line.me/v2/bot/message/reply';
+const HISTORY_NUM = 3;
+const QUESTION_NUM = 10;
+const USAGE_LIMIT = 1000;
 const MAX_LENGTH_INPUT = 1000;
 const MAX_LENGTH_OUTPUT = 4000;
 
@@ -104,7 +104,7 @@ function createMessage(userId, userMessage) {
   // userIdでフィルタリング
   let userRows = data.filter(row => row[0] === userId);
   // 最新の会話を取得
-  let lastFiveRows = userRows.slice(-HistoryNum);
+  let lastFiveRows = userRows.slice(-HISTORY_NUM);
 
   let messages = [];
 
@@ -143,7 +143,7 @@ function lineReply(replyToken, text) {
   // quickReplyの選択肢を取得
   const quickReplyOptions = getQuickReplyOptions();
 
-  UrlFetchApp.fetch(lineReplyUrl, {
+  UrlFetchApp.fetch(LINE_REPLY_URL, {
     'headers': {
       'Content-Type': 'application/json; charset=UTF-8',
       'Authorization': 'Bearer ' + LINE_ACCESS_TOKEN,
@@ -182,7 +182,7 @@ function getQuickReplyOptions() {
     // text: 最大文字数：300
     questions.push({ "type": "action", "action": { "type": "message", "label": text, "text": text } });
 
-    if (i >= QuestionNum - 1) {
+    if (i >= QUESTION_NUM - 1) {
       break;
     }
   }
@@ -209,7 +209,7 @@ function isOverUsageLimit(userId) {
   var userRows = data.filter(function (row) {
     return row[0] === userId && new Date(row[3]) >= oneDayAgo; // 24時間以内のデータをフィルタリング
   });
-  return userRows.length >= UsageLimit;
+  return userRows.length >= USAGE_LIMIT;
 }
 
 function saveLog(text) {
