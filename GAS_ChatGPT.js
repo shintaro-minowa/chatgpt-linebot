@@ -60,6 +60,13 @@ function doPost(e) {
     // 5000文字に収まるようにする
     // https://developers.line.biz/ja/reference/messaging-api/#text-message
     text = text.substr(0, 5000);
+    this.saveLog('text: ' + text);
+
+    // 消費したトークン数
+    const usage = json['usage'];
+    this.saveLog('prompt_tokens: ' + usage['prompt_tokens']);
+    this.saveLog('completion_tokens: ' + usage['completion_tokens']);
+    this.saveLog('total_tokens: ' + usage['total_tokens']);
 
     // 現在の会話を保存
     this.saveMessage(userId, userMessage, text);
