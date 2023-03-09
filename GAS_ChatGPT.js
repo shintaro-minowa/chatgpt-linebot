@@ -3,7 +3,7 @@ const OPENAI_APIKEY = '';
 const historySheet = SpreadsheetApp.openById("").getSheetByName("history");
 const questionsSheet = SpreadsheetApp.openById("").getSheetByName("questions");
 const logSheet = SpreadsheetApp.openById("").getSheetByName("log");
-const systemText = "";
+const SYSTEM_TEXT = "";
 const LINE_REPLY_URL = 'https://api.line.me/v2/bot/message/reply';
 const HISTORY_NUM = 3;
 const QUESTION_NUM = 10;
@@ -109,8 +109,8 @@ function createMessage(userId, userMessage) {
   let messages = [];
 
   // AIの性格を指定する文を入れる
-  messages.unshift({ "role": "system", "content": systemText });
-  Logger.log('role: system, content: ' + systemText);
+  messages.unshift({ "role": "system", "content": SYSTEM_TEXT });
+  Logger.log('role: system, content: ' + SYSTEM_TEXT);
 
   // 最新の会話を入れる
   lastFiveRows.forEach(function (row) {
