@@ -5,7 +5,7 @@ const questionsSheet = SpreadsheetApp.openById("").getSheetByName("questions");
 const logSheet = SpreadsheetApp.openById("").getSheetByName("log");
 const systemText = "";
 const lineReplyUrl = 'https://api.line.me/v2/bot/message/reply';
-const HistoryNum = 10;
+const HistoryNum = 3;
 const QuestionNum = 10;
 const UsageLimit = 1000;
 
