@@ -40,6 +40,8 @@ function doPost(e) {
       // もし2通目を送る場合は別の処理が必要。
 
       // 処理終了
+      Logger.log('利用制限超過');
+      saveLog(Logger.getLog());
       return;
     }
 
@@ -91,7 +93,8 @@ function doPost(e) {
     // LINEで返信
     lineReply(replyToken, text);
   } catch (error) {
-    saveLog(error);
+    Logger.log(error);
+    saveLog(Logger.getLog());
   }
 }
 
@@ -206,11 +209,7 @@ function isOverUsageLimit(userId) {
 }
 
 function saveLog(text) {
-  // 現在日時を取得
-  const now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
-
   const lastRow = logSheet.getLastRow();
   // スプレッドシートにログを出力
   logSheet.getRange(lastRow + 1, 1).setValue(text);
-  logSheet.getRange(lastRow + 1, 2).setValue(now);
 }
