@@ -21,20 +21,37 @@ const errorLogSheet = sheet.getSheetByName("error_log");
 function doPost(e) {
   try {
     Logger.log("doPost start");
-    const event = JSON.parse(e.postData.contents).events[0];
 
+    // LINE Developers Messaging APIリファレンス
+    // https://developers.line.biz/ja/reference/messaging-api/#webhook-event-objects
+
+    // POSTされたデータを取得
+    const event = JSON.parse(e.postData.contents).events[0];
     const userId = event.source.userId;
     Logger.log('userId: ' + userId);
-    const replyToken = event.replyToken;
-    Logger.log('replyToken: ' + replyToken);
-    Logger.log('event.message: ' + event.message);
-    let userMessage = event.message.text;
+    Logger.log('event.type: ' + event.type);
+
+    // イベントがメッセージイベント以外（フォローイベントなど）の場合
+    if (event.type !== 'message') {
+      Logger.log("event.type is not message");
+      saveLog(Logger.getLog());
+      return;
+    }
+
+    let userMessage = '';
+    Logger.log('event.message.type: ' + event.message.type);
+
+    if (event.message.type !== 'text') {
+      // メッセージイベントがテキストメッセージ以外（画像やスタンプなど）の場合
+      userMessage = '???';
+    } else {
+      userMessage = event.message.text;
+    }
+
     Logger.log('userMessage: ' + userMessage);
 
-    if (userMessage === undefined) {
-      // メッセージ以外(スタンプや画像など)が送られてきた場合
-      userMessage = '？？？';
-    }
+    const replyToken = event.replyToken;
+    Logger.log('replyToken: ' + replyToken);
 
     // メッセージを MAX_LENGTH_INPUT の値で切り捨て
     userMessage = userMessage.substring(0, MAX_LENGTH_INPUT);
