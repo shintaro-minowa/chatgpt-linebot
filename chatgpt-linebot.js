@@ -219,13 +219,16 @@ function getQuickReplyOptions() {
   let questions = [];
 
   // 質問例を、questionsに追加する。
-  // ヘッダーはスキップ
   for (let i = 0; i < data.length; i++) {
     const value = data[i];
-    const text = value[0].substr(0, 20);
+    const label = value[0].substr(0, 20);
+    const text = value[1].substr(0, 300);
+    if (label.trim() === "" || text.trim() === "") {
+      continue; // 空文字の場合はスキップする
+    }
     // label: 最大文字数：20
     // text: 最大文字数：300
-    questions.push({ "type": "action", "action": { "type": "message", "label": text, "text": text } });
+    questions.push({ "type": "action", "action": { "type": "message", "label": label, "text": text } });
 
     if (i >= QUESTION_NUM - 1) {
       break;
