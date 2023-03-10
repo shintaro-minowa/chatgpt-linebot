@@ -40,7 +40,7 @@ function doPost(e) {
     userMessage = userMessage.substring(0, MAX_LENGTH_INPUT);
 
     if (isOverUsageLimit(userId)) {
-      let text = "いつもご利用いただきありがとうございます。\n本日の利用制限回数に到達しました🙇‍♂";
+      const text = "いつもご利用いただきありがとうございます。\n本日の利用制限回数に到達しました🙇‍♂";
       // LINEで返信
       lineReply(replyToken, text);
 
@@ -122,11 +122,11 @@ function requestChatGpt(messages) {
 
 function createMessage(userId, userMessage) {
   // スプレッドシートから会話の履歴を全件取得
-  let data = historySheet.getDataRange().getValues();
+  const data = historySheet.getDataRange().getValues();
   // userIdでフィルタリング
-  let userRows = data.filter(row => row[0] === userId);
+  const userRows = data.filter(row => row[0] === userId);
   // 最新の会話を取得
-  let latestRows = userRows.slice(-HISTORY_NUM);
+  const latestRows = userRows.slice(-HISTORY_NUM);
 
   let messages = [];
 
@@ -225,10 +225,10 @@ function shuffleArray(array) {
 }
 
 function isOverUsageLimit(userId) {
-  var data = historySheet.getDataRange().getValues();
-  var now = new Date(); // 現在時刻を取得
-  var oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24時間前の時刻を計算
-  var userRows = data.filter(function (row) {
+  const data = historySheet.getDataRange().getValues();
+  const now = new Date(); // 現在時刻を取得
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24時間前の時刻を計算
+  const userRows = data.filter(function (row) {
     return row[0] === userId && new Date(row[3]) >= oneDayAgo; // 24時間以内のデータをフィルタリング
   });
   return userRows.length >= USAGE_LIMIT;
