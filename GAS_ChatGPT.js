@@ -24,11 +24,11 @@ function doPost(e) {
     const event = JSON.parse(e.postData.contents).events[0];
 
     const userId = event.source.userId;
-    const replyToken = event.replyToken;
-    let userMessage = event.message.text;
-
     Logger.log('userId: ' + userId);
+    const replyToken = event.replyToken;
     Logger.log('replyToken: ' + replyToken);
+    Logger.log('event.message: ' + event.message);
+    let userMessage = event.message.text;
     Logger.log('userMessage: ' + userMessage);
 
     if (userMessage === undefined) {
