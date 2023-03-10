@@ -21,75 +21,74 @@ const errorLogSheet = sheet.getSheetByName("error_log");
 function doPost(e) {
   try {
     Logger.log("doPost start");
+    // イベントを取得
+    const event = getEvent(e);
 
-    // LINE Developers Messaging APIリファレンス
-    // https://developers.line.biz/ja/reference/messaging-api/#webhook-event-objects
-
-    // POSTされたデータを取得
-    const event = JSON.parse(e.postData.contents).events[0];
-    const userId = event.source.userId;
-    Logger.log('userId: ' + userId);
     Logger.log('event.type: ' + event.type);
-
-    // イベントがメッセージイベント以外（フォローイベントなど）の場合
+    // イベントが何であるか
     if (event.type !== 'message') {
-      Logger.log("event.type is not message");
+      // イベントがメッセージイベント以外の場合、処理終了
+      Logger.log("event.type !== 'message'");
       saveLog(Logger.getLog());
       return;
     }
 
-    let userMessage = '';
-    Logger.log('event.message.type: ' + event.message.type);
+    // イベントがメッセージイベントの場合
 
-    if (event.message.type !== 'text') {
-      // メッセージイベントがテキストメッセージ以外（画像やスタンプなど）の場合
-      userMessage = '???';
-    } else {
-      userMessage = event.message.text;
-    }
-
-    Logger.log('userMessage: ' + userMessage);
-
+    // ユーザーIDを取得
+    const userId = event.source.userId;
+    Logger.log('userId: ' + userId);
+    // リプライトークンを取得
     const replyToken = event.replyToken;
     Logger.log('replyToken: ' + replyToken);
 
-    // メッセージを MAX_LENGTH_INPUT の値で切り捨て
-    userMessage = userMessage.substring(0, MAX_LENGTH_INPUT);
+    Logger.log('event.message.type: ' + event.message.type);
+    if (event.message.type !== 'text') {
+      // メッセージイベントのタイプがテキストメッセージ以外（動画やスタンプ）の場合
+      // 以下のメッセージをユーザに返信し、処理終了
+      replyMessage(replyToken, 'テキストメッセージを送信してください。');
+      saveLog(Logger.getLog());
+      return;
+    }
 
     if (isOverUsageLimit(userId)) {
-      const text = "いつもご利用いただきありがとうございます。\n本日の利用制限回数に到達しました🙇‍♂";
-      // LINEで返信
-      lineReply(replyToken, text);
-
-      // もし2通目を送る場合は別の処理が必要。
-
-      // 処理終了
+      // 利用制限回数の上限に達した場合、以下のメッセージをユーザに返信し、処理終了
+      replyMessage(replyToken, 'いつもご利用いただきありがとうございます。\n本日の利用制限回数に到達しました🙇‍♂');
       Logger.log('利用制限超過');
       saveLog(Logger.getLog());
       return;
     }
 
+    // メッセージイベントのタイプがテキストメッセージの場合
+    // ユーザからのメッセージ取得
+    let userMessage = event.message.text;
+    Logger.log('userMessage: ' + userMessage);
+
+    // メッセージを MAX_LENGTH_INPUT の値で切り捨て
+    userMessage = userMessage.substring(0, MAX_LENGTH_INPUT);
+
     // ChatGPTに渡すmessageを作成
-    const messages = createMessage(userId, userMessage);
-    // ChatGPTのAPIを呼び出す
-    let text = requestChatGpt(messages);
+    const messages = createChatGPTRequestMessage(userId, userMessage);
+
+    // chatgptの回答取得
+    let chatGptMessage = requestChatGPT(messages);
 
     // LINEで返信する文章は最大5000文字
     // https://developers.line.biz/ja/reference/messaging-api/#text-message
-
     // ChatGPTからのレスポンスを MAX_LENGTH_OUTPUT の値で切り捨て
-    text = text.substring(0, MAX_LENGTH_OUTPUT);
+    chatGptMessage = chatGptMessage.substring(0, MAX_LENGTH_OUTPUT);
 
-    // 現在の会話を保存
-    saveMessage(userId, userMessage, text);
+    // 会話の履歴を保存
+    saveConversation(userId, userMessage, chatGptMessage);
 
-    Logger.log('doPost end');
+    // ユーザに返信
+    replyMessage(replyToken, chatGptMessage);
 
     // ログを保存
     saveLog(Logger.getLog());
 
-    // LINEで返信
-    lineReply(replyToken, text);
+    // 処理終了
+    return;
   } catch (error) {
     Logger.log(error);
     saveLog(Logger.getLog());
@@ -97,7 +96,14 @@ function doPost(e) {
   }
 }
 
-function requestChatGpt(messages) {
+// イベントを取得する処理
+function getEvent(e) {
+  // LINE Developers Messaging APIリファレンス
+  // https://developers.line.biz/ja/reference/messaging-api/#webhook-event-objects
+  return JSON.parse(e.postData.contents).events[0];
+}
+
+function requestChatGPT(messages) {
   let text = '';
   try {
     const requestOptions = {
@@ -137,7 +143,7 @@ function requestChatGpt(messages) {
   return text;
 }
 
-function createMessage(userId, userMessage) {
+function createChatGPTRequestMessage(userId, userMessage) {
   // スプレッドシートから会話の履歴を全件取得
   const data = historySheet.getDataRange().getValues();
   // userIdでフィルタリング
@@ -166,7 +172,7 @@ function createMessage(userId, userMessage) {
   return messages;
 }
 
-function saveMessage(userId, userMessage, text) {
+function saveConversation(userId, userMessage, chatGptMessage) {
   const lastRow = historySheet.getLastRow();
   // 現在日時を取得
   const now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
@@ -174,11 +180,11 @@ function saveMessage(userId, userMessage, text) {
   // スプレッドシートに最新の会話を出力
   historySheet.getRange(lastRow + 1, 1).setValue(userId);
   historySheet.getRange(lastRow + 1, 2).setValue(userMessage);
-  historySheet.getRange(lastRow + 1, 3).setValue(text);
+  historySheet.getRange(lastRow + 1, 3).setValue(chatGptMessage);
   historySheet.getRange(lastRow + 1, 4).setValue(now);
 }
 
-function lineReply(replyToken, text) {
+function replyMessage(replyToken, text) {
   // quickReplyの選択肢を取得
   const quickReplyOptions = getQuickReplyOptions();
 
@@ -248,6 +254,8 @@ function isOverUsageLimit(userId) {
   const userRows = data.filter(function (row) {
     return row[0] === userId && new Date(row[3]) >= oneDayAgo; // 24時間以内のデータをフィルタリング
   });
+  Logger.log('userRows.length: ' + userRows.length);
+  Logger.log('USAGE_LIMIT ' + USAGE_LIMIT);
   return userRows.length >= USAGE_LIMIT;
 }
 
