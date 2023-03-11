@@ -26,14 +26,12 @@ function doPost(e) {
 
     Logger.log('event.type: ' + event.type);
     // イベントが何であるか
-    if (event.type !== 'message') {
+    if (event.type !== 'message' && event.type !== 'follow') {
       // イベントがメッセージイベント以外の場合、処理終了
       Logger.log("event.type !== 'message'");
       saveLog(Logger.getLog());
       return;
     }
-
-    // イベントがメッセージイベントの場合
 
     // ユーザーIDを取得
     const userId = event.source.userId;
@@ -42,6 +40,16 @@ function doPost(e) {
     const replyToken = event.replyToken;
     Logger.log('replyToken: ' + replyToken);
 
+    // イベントがフォローイベントの場合
+    if (event.type === 'follow') {
+      // あいさつメッセージを送信して処理終了
+      Logger.log("event.type === 'follow'");
+      replyMessage(replyToken, '話題のAI「ChatGPT」をLINEで使えます。\nまずは、以下のメッセージを「タップ」してお試しください！\n10秒ほどお待ちいただくと、どんな質問にもお答えすることができます。');
+      saveLog(Logger.getLog());
+      return;
+    }
+
+    // イベントがメッセージイベントの場合
     Logger.log('event.message.type: ' + event.message.type);
     if (event.message.type !== 'text') {
       // メッセージイベントのタイプがテキストメッセージ以外（動画やスタンプ）の場合
@@ -258,7 +266,7 @@ function isOverUsageLimit(userId) {
     return row[0] === userId && new Date(row[3]) >= oneDayAgo; // 24時間以内のデータをフィルタリング
   });
   Logger.log('userRows.length: ' + userRows.length);
-  Logger.log('USAGE_LIMIT ' + USAGE_LIMIT);
+  Logger.log('USAGE_LIMIT: ' + USAGE_LIMIT);
   return userRows.length >= USAGE_LIMIT;
 }
 
