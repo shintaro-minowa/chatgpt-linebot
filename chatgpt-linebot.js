@@ -197,66 +197,74 @@ function replyMessage(replyToken, text) {
   // quickReplyの選択肢を取得
   const quickReplyOptions = getQuickReplyOptions();
 
+  const payload = {
+    'replyToken': replyToken,
+    'messages': [{
+      'type': 'text',
+      'text': text
+    }]
+  };
+
+  if (quickReplyOptions) {
+    payload.messages[0].quickReply = quickReplyOptions;
+  }
+
   UrlFetchApp.fetch(LINE_REPLY_URL, {
     'headers': {
       'Content-Type': 'application/json; charset=UTF-8',
       'Authorization': 'Bearer ' + LINE_ACCESS_TOKEN,
     },
     'method': 'post',
-    'payload': JSON.stringify({
-      'replyToken': replyToken,
-      'messages': [{
-        'type': 'text',
-        'text': text,
-        'quickReply': quickReplyOptions
-      }]
-    })
+    'payload': JSON.stringify(payload)
   });
   return ContentService.createTextOutput(JSON.stringify({ 'content': 'post ok' })).setMimeType(ContentService.MimeType.JSON);
 }
 
+// 質問例を取得する
 function getQuickReplyOptions() {
-  // スプレッドシートから質問例を全件取得
-  const lastRow = questionsSheet.getLastRow();
-  const lastColumn = questionsSheet.getLastColumn();
-  // ヘッダーはスキップ
-  let data = questionsSheet.getRange(2, 1, lastRow - 1, lastColumn).getValues();
+  // LINE Developers クイックリプライを使う
+  // https://developers.line.biz/ja/docs/messaging-api/using-quick-reply/
+  const dataRange = questionsSheet.getDataRange();
+  let values = dataRange.getValues();
 
-  // 質問例をシャッフルする
-  shuffleArray(data);
+  values.shift(); // ヘッダーを配列から取り出す
+  let items = []; // 質問例を格納する配列
 
-  let questions = [];
-
-  // 質問例を、questionsに追加する。
-  for (let i = 0; i < data.length; i++) {
-    const value = data[i];
-    const label = value[0].substr(0, 20);
-    const text = value[1].substr(0, 300);
-    if (label.trim() === "" || text.trim() === "") {
-      continue; // 空文字の場合はスキップする
+  for (let i = 0; i < values.length; i++) {
+    const row = values[i];
+    if (row.join("") === "") {
+      continue; // 空行の場合はスキップする
     }
-    // label: 最大文字数：20
-    // text: 最大文字数：300
-    questions.push({ "type": "action", "action": { "type": "message", "label": label, "text": text } });
-
-    if (i >= QUESTION_NUM - 1) {
-      break;
-    }
+    const obj = {
+      type: "action",
+      action: {
+        type: "message",
+        label: row[0].substr(0, 20), // label: 最大文字数：20
+        text: row[1].substr(0, 300) // text: 最大文字数：300
+      }
+    };
+    items.push(obj); // 空行でない場合はオブジェクトを作成して配列に追加する
   }
 
-  quickReplyOptions = {
-    "items": questions
+  if (items.length === 0) {
+    return undefined; // ヘッダー以外の値がない場合はundefinedを返す
   }
 
-  return quickReplyOptions;
+  shuffle(items); // 質問例をシャッフルする
+  items = items.slice(0, QUESTION_NUM); // 質問例の数を定数QUESTION_NUMで指定された数に制限する
+
+  return {
+    "items": items
+  };
 }
 
-function shuffleArray(array) {
+function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+    const temp = array[i];
+    array[i] = array[j];
+    array[j] = temp;
   }
-  return array;
 }
 
 function isOverUsageLimit(userId) {
