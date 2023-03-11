@@ -3,6 +3,7 @@ const LINE_ACCESS_TOKEN = '';
 const OPENAI_APIKEY = '';
 const SHEET_ID = '';
 const SYSTEM_TEXT = "";
+const WELCOME_MESSAGE = '話題のAI「ChatGPT」をLINEで使えます。\nまずは、以下のメッセージを「タップ」してお試しください！\n10秒ほどお待ちいただくと、どんな質問にもお答えすることができます。';
 
 // 以降は全環境で統一
 const CHAT_GPT_URL = 'https://api.openai.com/v1/chat/completions';
@@ -44,7 +45,7 @@ function doPost(e) {
     if (event.type === 'follow') {
       // あいさつメッセージを送信して処理終了
       Logger.log("event.type === 'follow'");
-      replyMessage(replyToken, '話題のAI「ChatGPT」をLINEで使えます。\nまずは、以下のメッセージを「タップ」してお試しください！\n10秒ほどお待ちいただくと、どんな質問にもお答えすることができます。');
+      replyMessage(replyToken, WELCOME_MESSAGE);
       saveLog(Logger.getLog());
       return;
     }
