@@ -1,8 +1,8 @@
 // 環境変数
-const LINE_ACCESS_TOKEN = '';
-const OPENAI_APIKEY = '';
-const SHEET_ID = '';
-const SYSTEM_TEXT = "";
+const LINE_ACCESS_TOKEN = ScriptProperties.getProperty('LINE_ACCESS_TOKEN');
+const OPENAI_APIKEY = ScriptProperties.getProperty('OPENAI_APIKEY');
+const SHEET_ID = ScriptProperties.getProperty('SHEET_ID');
+const SYSTEM_TEXT = '';
 const WELCOME_MESSAGE = '話題のAI「ChatGPT」をLINEで使えます。\nまずは、以下のメッセージを「タップ」してお試しください！\n10秒ほどお待ちいただくと、どんな質問にもお答えすることができます。';
 
 // 以降は全環境で統一
