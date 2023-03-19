@@ -3,7 +3,6 @@ const LINE_ACCESS_TOKEN = ScriptProperties.getProperty('LINE_ACCESS_TOKEN');
 const OPENAI_APIKEY = ScriptProperties.getProperty('OPENAI_APIKEY');
 const SHEET_ID = ScriptProperties.getProperty('SHEET_ID');
 const SYSTEM_TEXT = '';
-const WELCOME_MESSAGE = '話題のAI「ChatGPT」をLINEで使えます。\nまずは、以下のメッセージを「タップ」してお試しください！\n10秒ほどお待ちいただくと、どんな質問にもお答えすることができます。';
 
 // 以降は全環境で統一
 const CHAT_GPT_URL = 'https://api.openai.com/v1/chat/completions';
@@ -18,6 +17,7 @@ const historySheet = sheet.getSheetByName("history");
 const questionsSheet = sheet.getSheetByName("questions");
 const logSheet = sheet.getSheetByName("log");
 const errorLogSheet = sheet.getSheetByName("error_log");
+const skipStringsSheet = sheet.getSheetByName("skip_strings");
 
 function doPost(e) {
   try {
@@ -27,7 +27,7 @@ function doPost(e) {
 
     Logger.log('event.type: ' + event.type);
     // イベントが何であるか
-    if (event.type !== 'message' && event.type !== 'follow') {
+    if (event.type !== 'message') {
       // イベントがメッセージイベント以外の場合、処理終了
       Logger.log("event.type !== 'message'");
       saveLog(Logger.getLog());
@@ -41,21 +41,23 @@ function doPost(e) {
     const replyToken = event.replyToken;
     Logger.log('replyToken: ' + replyToken);
 
-    // イベントがフォローイベントの場合
-    if (event.type === 'follow') {
-      // あいさつメッセージを送信して処理終了
-      Logger.log("event.type === 'follow'");
-      replyMessage(replyToken, WELCOME_MESSAGE);
-      saveLog(Logger.getLog());
-      return;
-    }
-
     // イベントがメッセージイベントの場合
     Logger.log('event.message.type: ' + event.message.type);
     if (event.message.type !== 'text') {
       // メッセージイベントのタイプがテキストメッセージ以外（動画やスタンプ）の場合
       // 以下のメッセージをユーザに返信し、処理終了
       replyMessage(replyToken, 'テキストメッセージを送信してください。');
+      saveLog(Logger.getLog());
+      return;
+    }
+
+    // メッセージイベントのタイプがテキストメッセージの場合
+    // ユーザからのメッセージ取得
+    let userMessage = event.message.text;
+    Logger.log('userMessage: ' + userMessage);
+
+    if (isSkippingString(userMessage)) {
+      Logger.log('userMessage is SkipString');
       saveLog(Logger.getLog());
       return;
     }
@@ -67,11 +69,6 @@ function doPost(e) {
       saveLog(Logger.getLog());
       return;
     }
-
-    // メッセージイベントのタイプがテキストメッセージの場合
-    // ユーザからのメッセージ取得
-    let userMessage = event.message.text;
-    Logger.log('userMessage: ' + userMessage);
 
     // メッセージを MAX_LENGTH_INPUT の値で切り捨て
     userMessage = userMessage.substring(0, MAX_LENGTH_INPUT);
@@ -110,6 +107,19 @@ function getEvent(e) {
   // LINE Developers Messaging APIリファレンス
   // https://developers.line.biz/ja/reference/messaging-api/#webhook-event-objects
   return JSON.parse(e.postData.contents).events[0];
+}
+
+// 特定の文字列であるか判定する
+function isSkippingString(inputString) {
+  // skip_stringsのシートから、ヘッダーを除いて文字列一覧を取得
+  const skipStrings = skipStringsSheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+
+  for (var i = 0; i < skipStrings.length; i++) {
+    if (inputString === skipStrings[i][0]) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function requestChatGPT(messages) {
