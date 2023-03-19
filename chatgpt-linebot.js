@@ -263,6 +263,18 @@ function getQuickReplyOptions() {
   shuffle(items); // 質問例をシャッフルする
   items = items.slice(0, QUESTION_NUM); // 質問例の数を定数QUESTION_NUMで指定された数に制限する
 
+  // 質問例の先頭に固定のメッセージ「使い方を見る」を追加する
+  const fixedQuickReplyOption = {
+    type: "action",
+    action: {
+      type: "message",
+      label: '使い方を見る',
+      text: '【使い方を見る】'
+    }
+  };
+
+  items.unshift(fixedQuickReplyOption);
+
   return {
     "items": items
   };
