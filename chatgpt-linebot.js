@@ -309,6 +309,6 @@ function saveLog(text) {
 
 function saveErrorLog(text) {
   const lastRow = errorLogSheet.getLastRow();
-  // スプレッドシートにログを出力
+  // スプレッドシートにエラーログを出力
   errorLogSheet.getRange(lastRow + 1, 1).setValue(text);
 }
