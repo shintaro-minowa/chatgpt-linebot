@@ -56,7 +56,7 @@ function doPost(e) {
     let userMessage = event.message.text;
     Logger.log('userMessage: ' + userMessage);
 
-    if (isSkippingString(userMessage)) {
+    if (includesSkippingString(userMessage)) {
       Logger.log('userMessage is SkipString');
       saveLog(Logger.getLog());
       return;
@@ -109,13 +109,13 @@ function getEvent(e) {
   return JSON.parse(e.postData.contents).events[0];
 }
 
-// 特定の文字列であるか判定する
-function isSkippingString(inputString) {
+// 特定の文字列が含まれるか判定する
+function includesSkippingString(inputString) {
   // skip_stringsのシートから、ヘッダーを除いて文字列一覧を取得
-  const skipStrings = skipStringsSheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  const skipStrings = skipStringsSheet.getRange(2, 1, skipStringsSheet.getLastRow() - 1, 1).getValues();
 
   for (var i = 0; i < skipStrings.length; i++) {
-    if (inputString === skipStrings[i][0]) {
+    if (inputString.indexOf(skipStrings[i][0]) !== -1) {
       return true;
     }
   }
